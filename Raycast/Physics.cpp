@@ -166,11 +166,12 @@ namespace Physics {
         world2Obj.Invert();
         LineSegment tempSegment(line);
         tempSegment.mFrom = Vector3::Transform(tempSegment.mFrom, world2Obj);
-        tempSegment.mTo = Vector3::Transform(tempSegment.mFrom, world2Obj);
+        tempSegment.mTo = Vector3::Transform(tempSegment.mTo, world2Obj);
         bool ret = mSoup->RayCast(tempSegment, info);
         if (ret && info)
         {
             info->mNormal = Vector3::Transform(info->mNormal, mObj2World, 0.0f);
+            info->mNormal.Normalize();
             info->mPoint = Vector3::Transform(info->mPoint, mObj2World, 1.0f);
         }
         return ret;
