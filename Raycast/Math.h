@@ -924,3 +924,12 @@ namespace Color
 	static const Vector3 LightGreen(0.56f, 0.93f, 0.56f);
 	// NOLINTEND
 } // namespace Color
+
+namespace Math
+{
+    [[nodiscard]] inline bool CloseEnough(const Vector3& a, const Vector3& b, float epsilon = 0.001f)
+	{
+        Vector3 diff = a - b;
+        return NearZero(diff.x, epsilon) && NearZero(diff.y, epsilon) && NearZero(diff.z, epsilon);
+	}
+}

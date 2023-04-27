@@ -16,12 +16,18 @@
     <ClCompile Include="Physics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="UnitTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Physics.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Math.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UnitTest.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

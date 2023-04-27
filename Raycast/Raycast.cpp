@@ -2,11 +2,16 @@
 //
 
 #include "Physics.h"
+#include "UnitTest.h"
 #include <iostream>
 
 int main()
 {
     std::cout << "Hello World!\n";
+
+    bool result = Physics::UnitTest();
+
+    return result ? 0 : -1;
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

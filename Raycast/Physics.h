@@ -3,26 +3,19 @@
 
 namespace Physics 
 {
-    class AABB {
-    public:
-        Vector3 mMin;
-        Vector3 mMax;
-        AABB(Vector3 min, Vector3 max);
-    };
-
     class LineSegment {
     public:
         Vector3 mFrom;
         Vector3 mTo;
-        LineSegment(const Vector3* from, const Vector3* to);
+        LineSegment(const Vector3& from, const Vector3& to);
     };
 
     class Plane {
     public:
         Vector3 mNormal;
         float mD;
-        Plane(Vector3 point, Vector3 normal);
-        Plane(Vector3 normal, float d);
+        Plane(const Vector3& point, const Vector3& normal);
+        Plane(const Vector3& normal, float d);
     };
 
     class Triangle {
