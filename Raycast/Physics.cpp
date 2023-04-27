@@ -2,6 +2,132 @@
 
 namespace Physics {
 
+    AABB::AABB(const Vector3& _min, const Vector3& _max)
+        : mMin(_min)
+        , mMax(_max)
+    {}
+
+    void AABB::AddPoint(const Vector3& p)
+    {
+        mMin.x = fminf(mMin.x, p.x);
+        mMin.y = fminf(mMin.y, p.y);
+        mMin.z = fminf(mMin.z, p.z);
+        mMax.x = fmaxf(mMax.x, p.x);
+        mMax.y = fmaxf(mMax.y, p.y);
+        mMax.z = fmaxf(mMax.z, p.z);
+    }
+
+    bool AABB::Intersect(const AABB& other) const
+    {
+        if (mMin.x > other.mMax.x)
+            return false;
+        if (mMin.y > other.mMax.y)
+            return false;
+        if (mMin.z > other.mMax.z)
+            return false;
+        if (other.mMin.x > mMax.x)
+            return false;
+        if (other.mMin.y > mMax.y)
+            return false;
+        if (other.mMin.z > mMax.z)
+            return false;
+        return true;
+    }
+
+    bool AABB::Intersect(const LineSegment& line) const
+    {
+        static const float s_closeEnuf = 0.001f;
+        Vector3 d = line.mTo - line.mFrom;
+        float tmin = -FLT_MAX; // set to -FLT_MAX to get first hit on line
+        float tmax = FLT_MAX; // set to max distance ray can travel (for segment)
+
+                              // x axis
+        if (fabsf(d.x) < s_closeEnuf)
+        {
+            // LineSegment is parallel to slab. No hit if origin not within slab
+            if (line.mFrom.x < mMin.x || line.mFrom.x > mMax.x)
+                return false;
+        }
+        else
+        {
+            float ood = 1.0f / d.x;
+            float t1 = (mMin.x - line.mFrom.x) * ood;
+            float t2 = (mMax.x - line.mFrom.x) * ood;
+            // Make t1 be intersection with near plane, t2 with far plane
+            if (t1 > t2)
+            {
+                float temp = t2;
+                t2 = t1;
+                t1 = temp;
+            }
+            // Compute the intersection of slab intersection intervals
+            tmin = fmaxf(tmin, t1); // Rather than: if (t1 > tmin) tmin = t1;
+            tmax = fminf(tmax, t2); // Rather than: if (t2 < tmax) tmax = t2;
+                                  // Exit with no collision as soon as slab intersection becomes empty
+            if (tmin > tmax)
+                return false;
+        }
+
+        // y axis
+        if (fabsf(d.y) < s_closeEnuf)
+        {
+            // LineSegment is parallel to slab. No hit if origin not within slab
+            if (line.mFrom.y < mMin.y || line.mFrom.y > mMax.y)
+                return false;
+        }
+        else
+        {
+            float ood = 1.0f / d.y;
+            float t1 = (mMin.y - line.mFrom.y) * ood;
+            float t2 = (mMax.y - line.mFrom.y) * ood;
+            // Make t1 be intersection with near plane, t2 with far plane
+            if (t1 > t2)
+            {
+                float temp = t2;
+                t2 = t1;
+                t1 = temp;
+            }
+            // Compute the intersection of slab intersection intervals
+            tmin = fmaxf(tmin, t1); // Rather than: if (t1 > tmin) tmin = t1;
+            tmax = fminf(tmax, t2); // Rather than: if (t2 < tmax) tmax = t2;
+                                  // Exit with no collision as soon as slab intersection becomes empty
+            if (tmin > tmax)
+                return false;
+        }
+
+        // z axis
+        if (fabsf(d.z) < s_closeEnuf)
+        {
+            // LineSegment is parallel to slab. No hit if origin not within slab
+            if (line.mFrom.z < mMin.z || line.mFrom.z > mMax.z)
+                return false;
+        }
+        else
+        {
+            float ood = 1.0f / d.z;
+            float t1 = (mMin.z - line.mFrom.z) * ood;
+            float t2 = (mMax.z - line.mFrom.z) * ood;
+            // Make t1 be intersection with near plane, t2 with far plane
+            if (t1 > t2)
+            {
+                float temp = t2;
+                t2 = t1;
+                t1 = temp;
+            }
+            // Compute the intersection of slab intersection intervals
+            tmin = fmaxf(tmin, t1); // Rather than: if (t1 > tmin) tmin = t1;
+            tmax = fminf(tmax, t2); // Rather than: if (t2 < tmax) tmax = t2;
+                                  // Exit with no collision as soon as slab intersection becomes empty
+            if (tmin > tmax)
+                return false;
+        }
+
+        if (tmin > 1.0f || tmax < 0.0f)
+            return false;
+
+        return true;
+    }
+
     ///////////////////////////////////////////////////////////////////////////////////////////////
     // LineSegment
     ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -58,10 +184,12 @@ namespace Physics {
     // Triangle
     ///////////////////////////////////////////////////////////////////////////////////////////////
     Triangle::Triangle(const Vector3& a, const Vector3& b, const Vector3& c)
+        : mIsDirty(true)
     {
         mPoints[0] = a;
         mPoints[1] = b;
         mPoints[2] = c;
+        GetPlane();
     }
 
     /// <summary>
@@ -82,8 +210,12 @@ namespace Physics {
     /// <returns>the plane of the Triangle</returns>
     Plane Triangle::GetPlane() const
     {
-        Plane p(mPoints[0], GetNormal());
-        return p;
+        if (mIsDirty)
+        {
+            mPlane = Plane(mPoints[0], GetNormal());
+            mIsDirty = false;
+        }
+        return mPlane;
     }
 
     /// <summary>
@@ -151,6 +283,9 @@ namespace Physics {
     ///////////////////////////////////////////////////////////////////////////////////////////////
     TriangleSoup::TriangleSoup(int vertCount, Vector3* pVerts, int numTri, int* pIndices)
         : mTriCount(numTri)
+#ifdef TRISOUP_AABB
+        , mAABB(*pVerts, *pVerts)
+#endif
     {
         mTris = new Triangle[mTriCount]();
         for (int i = 0; i < numTri; ++i)
@@ -158,6 +293,10 @@ namespace Physics {
             for (int j = 0; j < 3; ++j)
                 mTris[i].mPoints[j] = pVerts[pIndices[i*3 + j]];
         }
+#ifdef TRISOUP_AABB
+        for (int i = 1; i < vertCount; ++i)
+            mAABB.AddPoint(pVerts[i]);
+#endif
     }
 
     TriangleSoup::~TriangleSoup()
@@ -174,6 +313,18 @@ namespace Physics {
     /// <returns>true if the LineSegment hits the soup</returns>
     bool TriangleSoup::RayCast(const LineSegment& line, CastInfo* info) const
     {
+#ifdef TRISOUP_AABB
+#if 0
+        AABB lineAABB(line.mFrom, line.mFrom);
+        lineAABB.AddPoint(line.mTo);
+
+        if (false == mAABB.Intersect(lineAABB))
+            return false;
+#elif 0
+        if (false == mAABB.Intersect(line))
+            return false;
+#endif
+#endif
         bool hit = false;
         CastInfo tempInfo;
         CastInfo bestInfo;
@@ -201,11 +352,13 @@ namespace Physics {
     ///////////////////////////////////////////////////////////////////////////////////////////////
     SoupObj::SoupObj()
         : mSoup(nullptr)
+        , mIsDirty(true)
     {}
 
     SoupObj::SoupObj(const TriangleSoup* pSoup, const Matrix4& obj2World)
         : mSoup(pSoup)
         , mObj2World(obj2World)
+        , mIsDirty(true)
     {}
 
     /// <summary>
@@ -217,11 +370,15 @@ namespace Physics {
     /// <returns>true if the LineSegment hits the soup</returns>
     bool SoupObj::RayCast(const LineSegment& line, CastInfo* info) const
     {
-        Matrix4 world2Obj = mObj2World;
-        world2Obj.Invert();
+        if (mIsDirty)
+        {
+            mWorld2Obj = mObj2World;
+            mWorld2Obj.Invert();
+            mIsDirty = false;
+        }
         LineSegment tempSegment(line);
-        tempSegment.mFrom = Vector3::Transform(tempSegment.mFrom, world2Obj);
-        tempSegment.mTo = Vector3::Transform(tempSegment.mTo, world2Obj);
+        tempSegment.mFrom = Vector3::Transform(tempSegment.mFrom, mWorld2Obj);
+        tempSegment.mTo = Vector3::Transform(tempSegment.mTo, mWorld2Obj);
         bool ret = mSoup->RayCast(tempSegment, info);
         if (ret && info)
         {

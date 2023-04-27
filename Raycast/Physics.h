@@ -2,6 +2,8 @@
 #include "Math.h"
 #include <vector>
 
+//#define TRISOUP_AABB  // turns out this doesn't speed anything up
+
 namespace Physics 
 {
     /// <summary>
@@ -12,6 +14,19 @@ namespace Physics
         Vector3 mPoint;     // the point of intersection in world space
         Vector3 mNormal;    // the normal at the point of intersection in world space
         float mFraction;    // how far along the line segment is the intersection (range 0 to 1)
+    };
+
+    class AABB {
+    public:
+        Vector3 mMin;
+        Vector3 mMax;
+
+        AABB(const Vector3& _min, const Vector3& _max);
+
+        void AddPoint(const Vector3& p);
+
+        bool Intersect(const AABB& other) const;
+        bool Intersect(const class LineSegment& line) const;
     };
 
     /// <summary>
@@ -34,6 +49,7 @@ namespace Physics
     public:
         Vector3 mNormal;
         float mD;
+        Plane() : mD(0.0f) {}
         Plane(const Vector3& point, const Vector3& normal);
         Plane(const Vector3& normal, float d);
 
@@ -48,7 +64,7 @@ namespace Physics
     class Triangle {
     public:
         Vector3 mPoints[3];
-        Triangle() {}
+        Triangle() : mIsDirty(true) {}
         Triangle(const Vector3& a, const Vector3& b, const Vector3& c);
 
         Vector3 GetNormal() const;
@@ -56,6 +72,10 @@ namespace Physics
         bool IsPointInside(const Vector3& p) const;
     
         bool RayCast(const LineSegment& line, CastInfo* info=nullptr) const;
+
+    private:
+        mutable bool mIsDirty;
+        mutable Plane mPlane;
     };
 
     /// <summary>
@@ -73,6 +93,9 @@ namespace Physics
     private:
         Triangle* mTris;
         int mTriCount;
+#ifdef TRISOUP_AABB
+        AABB mAABB;
+#endif
     };
 
     /// <summary>
@@ -91,6 +114,10 @@ namespace Physics
         SoupObj(const TriangleSoup* pSoup, const Matrix4& obj2World);
 
         bool RayCast(const LineSegment& line, CastInfo* info = nullptr) const;
+
+    private:
+        mutable bool mIsDirty;
+        mutable Matrix4 mWorld2Obj;
     };
 
     /// <summary>

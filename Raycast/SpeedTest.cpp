@@ -5,7 +5,7 @@
 #include <chrono>
 
 const int NUM_OBJ = 10000;
-const int NUM_RAY = 500;
+const int NUM_RAY = 5000;
 const float WORLD_RADIUS = 10000.0f;
 const float MIN_SCALE = 0.1f;
 const float MAX_SCALE = 100.0f;
@@ -34,6 +34,7 @@ Physics::LineSegment RandomLine()
 float SpeedTest()
 {
     Random::Init();
+    Random::Seed(0x1337);
     Physics::World world;
     for (int i = 0; i < NUM_OBJ; ++i)
     {
