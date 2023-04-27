@@ -2,8 +2,6 @@
 #include "Math.h"
 #include <vector>
 
-//#define TRISOUP_AABB  // turns out this doesn't speed anything up
-
 namespace Physics 
 {
     /// <summary>
@@ -14,19 +12,6 @@ namespace Physics
         Vector3 mPoint;     // the point of intersection in world space
         Vector3 mNormal;    // the normal at the point of intersection in world space
         float mFraction;    // how far along the line segment is the intersection (range 0 to 1)
-    };
-
-    class AABB {
-    public:
-        Vector3 mMin;
-        Vector3 mMax;
-
-        AABB(const Vector3& _min, const Vector3& _max);
-
-        void AddPoint(const Vector3& p);
-
-        bool Intersect(const AABB& other) const;
-        bool Intersect(const class LineSegment& line) const;
     };
 
     /// <summary>
@@ -64,7 +49,7 @@ namespace Physics
     class Triangle {
     public:
         Vector3 mPoints[3];
-        Triangle() : mIsDirty(true) {}
+        Triangle() {}
         Triangle(const Vector3& a, const Vector3& b, const Vector3& c);
 
         Vector3 GetNormal() const;
@@ -72,10 +57,6 @@ namespace Physics
         bool IsPointInside(const Vector3& p) const;
     
         bool RayCast(const LineSegment& line, CastInfo* info=nullptr) const;
-
-    private:
-        mutable bool mIsDirty;
-        mutable Plane mPlane;
     };
 
     /// <summary>
@@ -93,9 +74,6 @@ namespace Physics
     private:
         Triangle* mTris;
         int mTriCount;
-#ifdef TRISOUP_AABB
-        AABB mAABB;
-#endif
     };
 
     /// <summary>
@@ -114,15 +92,11 @@ namespace Physics
         SoupObj(const TriangleSoup* pSoup, const Matrix4& obj2World);
 
         bool RayCast(const LineSegment& line, CastInfo* info = nullptr) const;
-
-    private:
-        mutable bool mIsDirty;
-        mutable Matrix4 mWorld2Obj;
     };
 
     /// <summary>
     /// The World is the container for all the SoupObj.
-    /// You may add data if you want to
+    /// You may add data or reorganize any way you want to
     /// </summary>
     class World {
     public:
