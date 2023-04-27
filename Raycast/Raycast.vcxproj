@@ -129,12 +129,18 @@
   <ItemGroup>
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="Physics.cpp" />
+    <ClCompile Include="Random.cpp" />
     <ClCompile Include="Raycast.cpp" />
+    <ClCompile Include="SoupCube.cpp" />
+    <ClCompile Include="SpeedTest.cpp" />
     <ClCompile Include="UnitTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Math.h" />
     <ClInclude Include="Physics.h" />
+    <ClInclude Include="Random.h" />
+    <ClInclude Include="SoupCube.h" />
+    <ClInclude Include="SpeedTest.h" />
     <ClInclude Include="UnitTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

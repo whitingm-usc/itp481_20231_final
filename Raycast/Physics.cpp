@@ -2,11 +2,17 @@
 
 namespace Physics {
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // LineSegment
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     LineSegment::LineSegment(const Vector3& from, const Vector3& to)
         : mFrom(from)
         , mTo(to)
     {}
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Plane
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     Plane::Plane(const Vector3& point, const Vector3& normal)
         : mNormal(normal)
     {
@@ -18,6 +24,13 @@ namespace Physics {
         , mD(d)
     {}
 
+    /// <summary>
+    /// Cast the LineSegment across the Plane and return true if it intersects
+    /// LineSegments coming from behind the Plane do not count as intersections
+    /// </summary>
+    /// <param name="line">the LineSegment to check against the Plane</param>
+    /// <param name="info">OPTIONAL if there is an intersection, info will be filled it</param>
+    /// <returns>true if the LineSegment hits the Plane</returns>
     bool Plane::RayCast(const LineSegment& line, CastInfo* info) const
     {
         Vector3 v = line.mTo - line.mFrom;
@@ -41,6 +54,9 @@ namespace Physics {
         return true;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // Triangle
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     Triangle::Triangle(const Vector3& a, const Vector3& b, const Vector3& c)
     {
         mPoints[0] = a;
@@ -48,6 +64,10 @@ namespace Physics {
         mPoints[2] = c;
     }
 
+    /// <summary>
+    /// Calculate and return the normal of the Triangle
+    /// </summary>
+    /// <returns>the normal of the Triangle</returns>
     Vector3 Triangle::GetNormal() const
     {
         Vector3 ab = mPoints[1] - mPoints[0];
@@ -56,12 +76,23 @@ namespace Physics {
         return Vector3::Normalize(n);
     }
 
+    /// <summary>
+    /// Calculate and return the plane the Triangle is within
+    /// </summary>
+    /// <returns>the plane of the Triangle</returns>
     Plane Triangle::GetPlane() const
     {
         Plane p(mPoints[0], GetNormal());
         return p;
     }
 
+    /// <summary>
+    /// Cast the LineSegment across the Triangle and return true if it intersects
+    /// LineSegments coming from behind the Triangle do not count as intersections
+    /// </summary>
+    /// <param name="line">the LineSegment to check against the Triangle</param>
+    /// <param name="info">OPTIONAL if there is an intersection, info will be filled it</param>
+    /// <returns>true if the LineSegment hits the Triangle</returns>
     bool Triangle::RayCast(const LineSegment& line, CastInfo* info) const
     {
         Plane p = GetPlane();
@@ -115,6 +146,9 @@ namespace Physics {
         return true;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // TriangleSoup
+    ///////////////////////////////////////////////////////////////////////////////////////////////
     TriangleSoup::TriangleSoup(int vertCount, Vector3* pVerts, int numTri, int* pIndices)
         : mTriCount(numTri)
     {
@@ -131,6 +165,13 @@ namespace Physics {
         delete[] mTris;
     }
 
+    /// <summary>
+    /// Cast the LineSegment across the soup and return true if it intersects
+    /// LineSegments coming from behind the soup do not count as intersections
+    /// </summary>
+    /// <param name="line">the LineSegment to check against the soup</param>
+    /// <param name="info">OPTIONAL if there is an intersection, info will be filled it</param>
+    /// <returns>true if the LineSegment hits the soup</returns>
     bool TriangleSoup::RayCast(const LineSegment& line, CastInfo* info) const
     {
         bool hit = false;
@@ -155,11 +196,25 @@ namespace Physics {
         return hit;
     }
 
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // SoupObj
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    SoupObj::SoupObj()
+        : mSoup(nullptr)
+    {}
+
     SoupObj::SoupObj(const TriangleSoup* pSoup, const Matrix4& obj2World)
         : mSoup(pSoup)
         , mObj2World(obj2World)
     {}
 
+    /// <summary>
+    /// Cast the LineSegment across the soup and return true if it intersects
+    /// Note: the LineSegment could hit multiple Triangles in the Soup. In that case, the one closest to the start point of the segment will be returned.
+    /// </summary>
+    /// <param name="line">the LineSegment to check against the soup</param>
+    /// <param name="info">OPTIONAL if there is an intersection, info will be filled it</param>
+    /// <returns>true if the LineSegment hits the soup</returns>
     bool SoupObj::RayCast(const LineSegment& line, CastInfo* info) const
     {
         Matrix4 world2Obj = mObj2World;
@@ -175,5 +230,49 @@ namespace Physics {
             info->mPoint = Vector3::Transform(info->mPoint, mObj2World, 1.0f);
         }
         return ret;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    // World
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    World::World()
+    {}
+
+    World::~World()
+    {}
+
+    void World::AddObj(const SoupObj& obj)
+    {
+        mObj.push_back(obj);
+    }
+
+    /// <summary>
+    /// Cast the LineSegment across the World and return true if it intersects anything
+    /// Note: the LineSegment could hit multiple objext in the World. In that case, the one closest to the start point of the segment will be returned.
+    /// </summary>
+    /// <param name="line">the LineSegment to check against the World</param>
+    /// <param name="info">OPTIONAL if there is an intersection, info will be filled it</param>
+    /// <returns>true if the LineSegment hits the anything in the World</returns>
+    bool World::RayCast(const LineSegment& line, CastInfo* info) const
+    {
+        bool hit = false;
+        CastInfo tempInfo;
+        CastInfo bestInfo;
+        bestInfo.mFraction = 100.0f;
+
+        for (const SoupObj& obj : mObj)
+        {
+            if (obj.RayCast(line, &tempInfo))
+            {
+                hit = true;
+                if (tempInfo.mFraction < bestInfo.mFraction)
+                    bestInfo = tempInfo;
+            }
+        }
+        if (hit && info)
+        {
+            *info = bestInfo;
+        }
+        return hit;
     }
 }

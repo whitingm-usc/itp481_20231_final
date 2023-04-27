@@ -1,5 +1,6 @@
 #include "UnitTest.h"
 #include "Physics.h"
+#include "SoupCube.h"
 #include <assert.h>
 
 namespace Physics
@@ -241,44 +242,6 @@ namespace Physics
         return true;
     }
 
-#define MAKE_SOUP(vert, index) ARRAY_SIZE(vert), vert, ARRAY_SIZE(index)/3, index
-    static Vector3 s_cubeVert[] = {
-        Vector3(-10.0f, -10.0f, -10.0f),
-        Vector3(10.0f, -10.0f, -10.0f),
-        Vector3(10.0f, 10.0f, -10.0f),
-        Vector3(-10.0f, 10.0f, -10.0f),
-        Vector3(-10.0f, -10.0f, 10.0f),
-        Vector3(10.0f, -10.0f, 10.0f),
-        Vector3(10.0f, 10.0f, 10.0f),
-        Vector3(-10.0f, 10.0f, 10.0f),
-    };
-    static int s_cubeIndex[] = {
-        // bottom
-        0, 2, 1,
-        0, 3, 2,
-
-        // top
-        4, 5, 6,
-        4, 6, 7,
-
-        // back
-        0, 1, 5,
-        0, 5, 4,
-        
-        // front
-        2, 3, 7,
-        2, 7, 6,
-
-        // left
-        0, 4, 7,
-        0, 7, 3,
-
-        // right
-        1, 2, 6,
-        1, 6, 5
-    };
-    static TriangleSoup s_cubeSoup(MAKE_SOUP(s_cubeVert, s_cubeIndex));
-
     struct LineVsSoup {
         LineSegment mLine;
         const TriangleSoup& mSoup;
@@ -289,35 +252,35 @@ namespace Physics
     static LineVsSoup s_lineVSoup[] = {
         {   // hit a cube on the left
             { Vector3(-100.0f, 0.0f, 0.0f), Vector3(100.0f, 0.0f, 0.0f) },
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(-1.0f, 0.0f, 0.0f),
             Vector3(-10.0f, 0.0f, 0.0f)
         },
         {   // hit a cube from the top
             { Vector3(0.0f, 0.0f, 100.0f), Vector3(0.0f, 0.0f, -100.0f) },
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(0.0f, 0.0f, 1.0f),
             Vector3(0.0f, 0.0f, 10.0f)
         },
         {   // miss a cube over the top
             { Vector3(-100.0f, 0.0f, 20.0f), Vector3(100.0f, 0.0f, 20.0f) },
-            s_cubeSoup,
+            g_cubeSoup,
             false,
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(0.0f, 0.0f, 0.0f)
         },
         {   // miss a cube short
             { Vector3(-100.0f, 0.0f, 0.0f), Vector3(-20.0f, 0.0f, 0.0f) },
-            s_cubeSoup,
+            g_cubeSoup,
             false,
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(0.0f, 0.0f, 0.0f)
         },
         {   // miss a cube past
             { Vector3(0.0f, 0.0f, -20.0f), Vector3(0.0f, 0.0f, -100.0f) },
-            s_cubeSoup,
+            g_cubeSoup,
             false,
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(0.0f, 0.0f, 0.0f)
@@ -362,7 +325,7 @@ namespace Physics
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(1.0f, 1.0f, 1.0f),
             Vector3(0.0f, 0.0f, 0.0f),
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(-1.0f, 0.0f, 0.0f),
             Vector3(-10.0f, 0.0f, 0.0f)
@@ -372,7 +335,7 @@ namespace Physics
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(1.0f, 1.0f, 1.0f),
             Vector3(0.0f, 0.0f, 1.570796f),
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(-1.0f, 0.0f, 0.0f),
             Vector3(-10.0f, 0.0f, 0.0f)
@@ -382,7 +345,7 @@ namespace Physics
             Vector3(0.0f, 0.0f, 0.0f),
             Vector3(1.0f, 1.0f, 1.0f),
             Vector3(0.0f, 0.0f, 0.785398f),
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(-0.707107f, -0.707107f, 0.0f),
             Vector3(-14.142136f, 0.0f, 0.0f)
@@ -392,7 +355,7 @@ namespace Physics
             Vector3(-10.0f, 0.0f, 0.0f),
             Vector3(1.0f, 1.0f, 1.0f),
             Vector3(0.0f, 0.0f, 1.570796f),
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(-1.0f, 0.0f, 0.0f),
             Vector3(-20.0f, 0.0f, 0.0f)
@@ -402,7 +365,7 @@ namespace Physics
             Vector3(-10.0f, 0.0f, 0.0f),
             Vector3(2.0f, 0.5f, 1.0f),
             Vector3(0.0f, 0.0f, 1.570796f),
-            s_cubeSoup,
+            g_cubeSoup,
             true,
             Vector3(-1.0f, 0.0f, 0.0f),
             Vector3(-15.0f, 0.0f, 0.0f)
@@ -437,6 +400,10 @@ namespace Physics
         return true;
     }
 
+    /// <summary>
+    /// This is the master unit test for the Physics Ray Casting
+    /// </summary>
+    /// <returns>true if the tests all pass or false if any fails</returns>
     bool UnitTest()
     {
         bool result = true;

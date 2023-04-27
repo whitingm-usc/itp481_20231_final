@@ -3,13 +3,23 @@
 
 #include "Physics.h"
 #include "UnitTest.h"
+#include "SpeedTest.h"
 #include <iostream>
 
 int main()
 {
-    std::cout << "Hello World!\n";
-
     bool result = Physics::UnitTest();
+
+    if (result)
+    {
+        std::cout << "Tests Passed" << std::endl;
+        float time = SpeedTest();
+        std::cout << "Time = " << time << " ms" << std::endl;
+    }
+    else
+    {
+        std::cout << "Tests Failed" << std::endl;
+    }
 
     return result ? 0 : -1;
 }
