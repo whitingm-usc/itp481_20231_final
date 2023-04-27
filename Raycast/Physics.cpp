@@ -18,6 +18,29 @@ namespace Physics {
         , mD(d)
     {}
 
+    bool Plane::RayCast(const LineSegment& line, CastInfo* info) const
+    {
+        Vector3 v = line.mTo - line.mFrom;
+        float d = Vector3::Dot(v, mNormal);
+        if (Math::NearZero(d))
+            return false;   // parallel
+        if (d > 0.0f)
+            return false;   // backwards
+        float t = -Vector3::Dot(line.mFrom, mNormal) - mD;
+        t = t / d;
+        if (t < 0.0f || t > 1.0f)
+            return false;
+
+        if (nullptr != info)
+        {
+            info->mNormal = mNormal;
+            info->mPoint = line.mFrom + v * t;
+            info->mFraction = t;
+        }
+
+        return true;
+    }
+
     Triangle::Triangle(const Vector3& a, const Vector3& b, const Vector3& c)
     {
         mPoints[0] = a;
@@ -37,6 +60,22 @@ namespace Physics {
     {
         Plane p(mPoints[0], GetNormal());
         return p;
+    }
+
+    bool Triangle::RayCast(const LineSegment& line, CastInfo* info) const
+    {
+        Plane p = GetPlane();
+        CastInfo tempInfo;
+        if (p.RayCast(line, &tempInfo))
+        {
+            if (IsPointInside(tempInfo.mPoint))
+            {
+                if (info)
+                    *info = tempInfo;
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -76,41 +115,64 @@ namespace Physics {
         return true;
     }
 
-    bool Intersect(const LineSegment& line, const Plane& plane, CastInfo* info)
+    TriangleSoup::TriangleSoup(int vertCount, Vector3* pVerts, int numTri, int* pIndices)
+        : mTriCount(numTri)
     {
-        Vector3 v = line.mTo - line.mFrom;
-        float d = Vector3::Dot(v, plane.mNormal);
-        if (Math::NearZero(d))
-            return false;   // parallel
-        if (d > 0.0f)
-            return false;   // backwards
-        float t = -Vector3::Dot(line.mFrom, plane.mNormal) - plane.mD;
-        t = t / d;
-        if (t < 0.0f || t > 1.0f)
-            return false;
-
-        if (nullptr != info)
+        mTris = new Triangle[mTriCount]();
+        for (int i = 0; i < numTri; ++i)
         {
-            info->mNormal = plane.mNormal;
-            info->mPoint = line.mFrom + v * t;
+            for (int j = 0; j < 3; ++j)
+                mTris[i].mPoints[j] = pVerts[pIndices[i*3 + j]];
         }
-
-        return true;
     }
 
-    bool Intersect(const LineSegment& line, const Triangle& b, CastInfo* info)
+    TriangleSoup::~TriangleSoup()
     {
-        Plane p = b.GetPlane();
+        delete[] mTris;
+    }
+
+    bool TriangleSoup::RayCast(const LineSegment& line, CastInfo* info) const
+    {
+        bool hit = false;
         CastInfo tempInfo;
-        if (Intersect(line, p, &tempInfo))
+        CastInfo bestInfo;
+        bestInfo.mFraction = 100.0f;
+
+        for (int i = 0; i < mTriCount; ++i)
         {
-            if (b.IsPointInside(tempInfo.mPoint))
+            const Triangle& tri = mTris[i];
+            if (tri.RayCast(line, &tempInfo))
             {
-                if (info)
-                    *info = tempInfo;
-                return true;
+                hit = true;
+                if (tempInfo.mFraction < bestInfo.mFraction)
+                    bestInfo = tempInfo;
             }
         }
-        return false;
+        if (hit && info)
+        {
+            *info = bestInfo;
+        }
+        return hit;
+    }
+
+    SoupObj::SoupObj(const TriangleSoup* pSoup, const Matrix4& obj2World)
+        : mSoup(pSoup)
+        , mObj2World(obj2World)
+    {}
+
+    bool SoupObj::RayCast(const LineSegment& line, CastInfo* info) const
+    {
+        Matrix4 world2Obj = mObj2World;
+        world2Obj.Invert();
+        LineSegment tempSegment(line);
+        tempSegment.mFrom = Vector3::Transform(tempSegment.mFrom, world2Obj);
+        tempSegment.mTo = Vector3::Transform(tempSegment.mFrom, world2Obj);
+        bool ret = mSoup->RayCast(tempSegment, info);
+        if (ret && info)
+        {
+            info->mNormal = Vector3::Transform(info->mNormal, mObj2World, 0.0f);
+            info->mPoint = Vector3::Transform(info->mPoint, mObj2World, 1.0f);
+        }
+        return ret;
     }
 }

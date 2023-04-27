@@ -52,7 +52,7 @@ namespace Physics
     bool TestLineVsPlane(const LineVsPlane& test)
     {
         CastInfo info;
-        bool result = Intersect(test.mLine, test.mPlane, &info);
+        bool result = test.mPlane.RayCast(test.mLine, &info);
         if (test.mShouldHit != result)
         {
             return false;
@@ -222,7 +222,112 @@ namespace Physics
     bool TestLineVsTri(const LineVsTri& test)
     {
         CastInfo info;
-        bool result = Intersect(test.mLine, test.mTri, &info);
+        bool result = test.mTri.RayCast(test.mLine, &info);
+        if (test.mShouldHit != result)
+        {
+            return false;
+        }
+        if (result)
+        {
+            if (false == Math::CloseEnough(info.mNormal, test.mCorrectNormal))
+            {
+                return false;
+            }
+            if (false == Math::CloseEnough(info.mPoint, test.mCorrectPosition))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+#define MAKE_SOUP(vert, index) ARRAY_SIZE(vert), vert, ARRAY_SIZE(index)/3, index
+    static Vector3 s_cubeVert[] = {
+        Vector3(-10.0f, -10.0f, -10.0f),
+        Vector3(10.0f, -10.0f, -10.0f),
+        Vector3(10.0f, 10.0f, -10.0f),
+        Vector3(-10.0f, 10.0f, -10.0f),
+        Vector3(-10.0f, -10.0f, 10.0f),
+        Vector3(10.0f, -10.0f, 10.0f),
+        Vector3(10.0f, 10.0f, 10.0f),
+        Vector3(-10.0f, 10.0f, 10.0f),
+    };
+    static int s_cubeIndex[] = {
+        // bottom
+        0, 2, 1,
+        0, 3, 2,
+
+        // top
+        4, 5, 6,
+        4, 6, 7,
+
+        // back
+        0, 1, 5,
+        0, 5, 4,
+        
+        // front
+        2, 3, 7,
+        2, 7, 6,
+
+        // left
+        0, 4, 7,
+        0, 7, 3,
+
+        // right
+        1, 2, 6,
+        1, 6, 5
+    };
+    static TriangleSoup s_cubeSoup(MAKE_SOUP(s_cubeVert, s_cubeIndex));
+
+    struct LineVsSoup {
+        LineSegment mLine;
+        const TriangleSoup& mSoup;
+        bool mShouldHit;
+        Vector3 mCorrectNormal;
+        Vector3 mCorrectPosition;
+    };
+    static LineVsSoup s_lineVSoup[] = {
+        {   // hit a cube on the left
+            { Vector3(-100.0f, 0.0f, 0.0f), Vector3(100.0f, 0.0f, 0.0f) },
+            s_cubeSoup,
+            true,
+            Vector3(-1.0f, 0.0f, 0.0f),
+            Vector3(-10.0f, 0.0f, 0.0f)
+        },
+        {   // hit a cube from the top
+            { Vector3(0.0f, 0.0f, 100.0f), Vector3(0.0f, 0.0f, -100.0f) },
+            s_cubeSoup,
+            true,
+            Vector3(0.0f, 0.0f, 1.0f),
+            Vector3(0.0f, 0.0f, 10.0f)
+        },
+        {   // miss a cube over the top
+            { Vector3(-100.0f, 0.0f, 20.0f), Vector3(100.0f, 0.0f, 20.0f) },
+            s_cubeSoup,
+            false,
+            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 0.0f, 0.0f)
+        },
+        {   // miss a cube short
+            { Vector3(-100.0f, 0.0f, 0.0f), Vector3(-20.0f, 0.0f, 0.0f) },
+            s_cubeSoup,
+            false,
+            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 0.0f, 0.0f)
+        },
+        {   // miss a cube past
+            { Vector3(0.0f, 0.0f, -20.0f), Vector3(0.0f, 0.0f, -100.0f) },
+            s_cubeSoup,
+            false,
+            Vector3(0.0f, 0.0f, 0.0f),
+            Vector3(0.0f, 0.0f, 0.0f)
+        },
+    };
+
+    bool TestLineVsSoup(const LineVsSoup& test)
+    {
+        CastInfo info;
+        bool result = test.mSoup.RayCast(test.mLine, &info);
         if (test.mShouldHit != result)
         {
             return false;
@@ -278,6 +383,15 @@ namespace Physics
             for (const LineVsTri& test : s_testLineVTri)
             {
                 bool ret = TestLineVsTri(test);
+                assert(ret);
+                result &= ret;
+            }
+        }
+
+        {   // line vs soup
+            for (const LineVsSoup& test : s_lineVSoup)
+            {
+                bool ret = TestLineVsSoup(test);
                 assert(ret);
                 result &= ret;
             }
